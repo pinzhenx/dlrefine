@@ -5,6 +5,12 @@ class Renderer {
     if (this.gl === null) {
       throw new Error('Unable to initialize WebGL.');
     }
+    if (!this.gl.getExtension('EXT_color_buffer_float')) {
+      throw new Error('not support EXT_color_buffer_float');
+    }
+    if (!this.gl.getExtension('OES_texture_float_linear')) {
+      throw new Error('not support OES_texture_float_linear');
+    }
 
     this.guidedFilter = new GuidedFilter(this.gl);
     this.utils = new WebGLUtils(this.gl);
@@ -18,7 +24,7 @@ class Renderer {
     this._imageSource = null;
 
     // UI state
-    this._effect = 'label';
+    this._effect = 'fill';
     this._zoom = 1;
     this._bgColor = [57, 135, 189];
     this._colorMapAlpha = 0.7;
@@ -329,7 +335,8 @@ class Renderer {
       in vec2 v_texcoord;
 
       void main() {
-        float fg_alpha= texture(u_mask, v_maskcord).a;
+        float fg_alpha = texture(u_mask, v_texcoord).x;
+        fg_alpha = 1.0 / (1.0 + exp(-fg_alpha));
         float bg_alpha = 1.0 - fg_alpha;
 
         vec4 pixel = texture(u_image, v_texcoord);
@@ -647,11 +654,11 @@ class Renderer {
       this.gl.texImage2D(
         this.gl.TEXTURE_2D,
         0,
-        this.gl.ALPHA,
+        this.gl.RGBA32F,
         this._clippedSize[0],
         this._clippedSize[1],
         0,
-        this.gl.ALPHA,
+        this.gl.FLOAT,
         this.gl.UNSIGNED_BYTE,
         this._predictions
       );
@@ -669,13 +676,13 @@ class Renderer {
         this.gl.texImage2D(
           this.gl.TEXTURE_2D,
           0,
-          this.gl.ALPHA,
+          this.gl.R32F,
           this._clippedSize[0],
           this._clippedSize[1],
           0,
-          this.gl.ALPHA,
-          this.gl.UNSIGNED_BYTE,
-          this._predictions
+          this.gl.RED,
+          this.gl.FLOAT,
+          this._predictions,
         );
       } else {
         // guided filter is enabled
@@ -838,28 +845,16 @@ class Renderer {
 
   _argmaxClippedSegMapPerson(segmap) {
 
-    const PERSON_ID = 15;
     const clippedHeight = this._clippedSize[1];
     const clippedWidth = this._clippedSize[0];
     const outputWidth = segmap.outputShape[1];
-    const numClasses = segmap.outputShape[2];
     const data = segmap.data;
-    const mask = new Uint8Array(clippedHeight * clippedWidth);
+    const mask = new Float32Array(clippedHeight * clippedWidth);
 
     let i = 0;
     for (let h = 0; h < clippedHeight; h++) {
-      const starth = h * outputWidth * numClasses;
       for (let w = 0; w < clippedWidth; w++) {
-        const startw = starth + w * numClasses;
-        let maxVal = Number.MIN_SAFE_INTEGER;
-        let maxIdx = 0;
-        for (let n = 0; n < numClasses; n++) {
-          if (data[startw + n] > maxVal) {
-            maxVal = data[startw + n];
-            maxIdx = n;
-          }
-        }
-        mask[i++] = maxIdx === PERSON_ID ? 255 : 0;
+        mask[i++] = data[h * outputWidth + w];
       }
     }
 

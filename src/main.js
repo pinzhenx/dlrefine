@@ -13,37 +13,13 @@ let drawTimeAcc = 0;
 
 
 const semanticSegmentationModels = [{
-  modelName: 'Deeplab 224 (TFLite)',
-  modelFormatName: 'model_224',
-  modelSize: '8.4MB',
-  modelFile: './model/deeplab_224.tflite',
-  labelsFile: './model/labels.txt',
-  inputSize: [224, 224, 3],
-  outputSize: [224, 224, 21],
-  preOptions: {
-    mean: [127.5, 127.5, 127.5],
-    std: [127.5, 127.5, 127.5],
-  },
-}, {
-  modelName: 'Deeplab 257 (TFLite)',
-  modelFormatName: 'model_257',
-  modelSize: '8.4MB',
-  modelFile: './model/deeplab_257.tflite',
-  labelsFile: './model/labels.txt',
-  inputSize: [257, 257, 3],
-  outputSize: [257, 257, 21],
-  preOptions: {
-    mean: [127.5, 127.5, 127.5],
-    std: [127.5, 127.5, 127.5],
-  },
-}, {
   modelName: 'Deeplab 513 (TFLite)',
   modelFormatName: 'model_513',
   modelSize: '8.4MB',
-  modelFile: './model/deeplab_513.tflite',
+  modelFile: './model/model513.tflite',
   labelsFile: './model/labels.txt',
   inputSize: [513, 513, 3],
-  outputSize: [513, 513, 21],
+  outputSize: [513, 513, 1],
   preOptions: {
     mean: [127.5, 127.5, 127.5],
     std: [127.5, 127.5, 127.5],

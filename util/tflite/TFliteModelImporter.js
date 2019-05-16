@@ -85,7 +85,7 @@ class TFliteModelImporter {
           typedArray = Uint8Array;
         } break;
         default: {
-          throw new Error(`tensor type ${tensor.type()} is not supproted.`);
+          throw new Error(`tensor type ${tensor.type()} is not supported.`);
         }
       }
       let dims = tensor.shapeArray().length ? Array.from(tensor.shapeArray()) : [1];
@@ -165,55 +165,6 @@ class TFliteModelImporter {
   _addOperation(opType, inputs, outputs) {
     this._requiredOps.add(opType);
     this._model.addOperation(opType, inputs, outputs);
-  }
-
-  async * layerIterator(inputTensors, layerList) {
-    const graph = this._rawModel.subgraphs(0);
-    const getLayerOutput = async (lastNode) => {
-      this._tensorIds = [];
-      this._operands = [];
-      this._operandIndex = 0;
-      if (this._backend !== 'WebML' && this._compilation) {
-        this._compilation._preparedModel._deleteAll();
-      }
-
-      this._model = await this._nn.createModel({backend: this._backend});
-      this._addTensorOperands();
-      lastNode = this._addOpsAndParams(lastNode);
-
-      const operator = graph.operators(lastNode);
-      const inputs = Array.from(graph.inputsArray());
-      const outputs = Array.from(operator.outputsArray());
-      const outputName = graph.tensors(outputs[0]).name();
-      this._model.identifyInputsAndOutputs(inputs, outputs);
-
-      await this._model.finish();
-      this._compilation = await this._model.createCompilation();
-      this._compilation.setPreference(getPreferCode(this._backend, this._prefer));
-      await this._compilation.finish();
-      this._execution = await this._compilation.createExecution();
-
-      const outputSize = graph.tensors(outputs[0]).shapeArray().reduce((a,b)=>a*b);
-      const outputTensor = new Float32Array(outputSize);  
-      await this.compute(inputTensors, [outputTensor]);
-      return {layerId: lastNode, outputName: outputName, tensor: outputTensor};
-    }
-
-    const operatorsLength = graph.operatorsLength();
-    if (typeof layerList === 'undefined') {
-      for (let lastNode = 0; lastNode < operatorsLength;) {
-        const layerOutput = await getLayerOutput(lastNode);
-        yield layerOutput;
-        lastNode = layerOutput.layerId + 1;
-      }
-    } else {
-      for (let layerId of layerList) {
-        if (layerId >= operatorsLength || layerId < 0) {
-          throw new Error(`Illegal layer ${layerId}`);
-        }
-        yield await getLayerOutput(layerId);
-      }
-    }
   }
 
   _addOpsAndParams(lastNode) {
@@ -398,6 +349,28 @@ class TFliteModelImporter {
         } break;
         case tflite.BuiltinOperator.MAXIMUM: {
           opType = this._nn.MAXIMUM;
+        } break;
+        case tflite.BuiltinOperator.STRIDED_SLICE: {
+          inputs = [inputs[0]];
+
+          const nChannels = 21;
+          const convFilterTensor = new Float32Array(nChannels).fill(0);
+          convFilterTensor[15] = 1;
+          // const convBiasTensor = new Float32Array(1).fill(0);
+
+          inputs.push(this._addTensorFloat32(convFilterTensor, [1,1,1,21]));
+          inputs.push(this._addTensorFloat32([0], [1]));
+          // paddings
+          inputs.push(this._addScalarInt32(0));
+          inputs.push(this._addScalarInt32(0));
+          inputs.push(this._addScalarInt32(0));
+          inputs.push(this._addScalarInt32(0));
+          // strides
+          inputs.push(this._addScalarInt32(1));
+          inputs.push(this._addScalarInt32(1));
+          inputs.push(this._addScalarInt32(this._nn.FUSED_RELU));
+
+          opType = this._nn.CONV_2D;
         } break;
         default: {
           throw new Error(`operator type ${opCode} is not supported.`);
