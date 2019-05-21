@@ -312,6 +312,15 @@ $(window).load(() => {
     renderer.effect = effect;
   });
 
+  $('.sample-bg img').click((e) => {
+    e.preventDefault();
+    let img = new Image();
+    img.onload = function () {
+      renderer.backgroundImageSource = img;
+    };
+    img.src = e.target.src;
+  });
+
   selectBackgroundButton.addEventListener('change', (e) => {
     let files = e.target.files;
     if (files.length > 0) {
@@ -326,24 +335,6 @@ $(window).load(() => {
   clearBackgroundButton.addEventListener('click', (e) => {
     renderer.backgroundImageSource = null;
   }, false);
-
-  function getMousePos(canvas, evt) {
-    let rect = canvas.getBoundingClientRect();
-    return {
-      x: Math.ceil(evt.clientX - rect.left),
-      y: Math.ceil(evt.clientY - rect.top)
-    };
-  }
-
-  canvasvideo.addEventListener('mousemove', (e) => {
-    hoverPos = getMousePos(canvasvideo, e);
-    renderer.highlightHoverLabel(hoverPos);
-  });
-  canvasvideo.addEventListener('mouseleave', (e) => {
-    hoverPos = null;
-    renderer.highlightHoverLabel(hoverPos);
-  });
-
 });
 
 $(window).load(() => {

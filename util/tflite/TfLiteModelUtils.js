@@ -91,10 +91,11 @@ function printTfLiteModel(model) {
       case 'TANH':
       case 'BATCH_TO_SPACE_ND':
       case 'TRANSPOSE':
+      case 'STRIDED_SLICE':
       case 'MAXIMUM': {
       } break;
       default: {
-        console.warn(`\t\t\t  builtin_options: ${op} is not supported.}`);
+        console.warn(`\t\t\t  builtin_options: ${op} is not supported.`);
       }
     }
   }

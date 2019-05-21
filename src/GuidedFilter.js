@@ -81,7 +81,8 @@ class GuidedFilter {
 
         void main() {
           float I = texture(u_I, v_texcoord).x;
-          float p = texture(u_p, v_texcoord).a;
+          float p = texture(u_p, v_texcoord).x;
+          p = 1.0 / (1.0 + exp(-p));
           float Ip = I * p;
           float II = I * I;
           result = vec4(I, p, Ip, II);
@@ -352,12 +353,12 @@ class GuidedFilter {
     this.gl.texImage2D(
       this.gl.TEXTURE_2D,
       0,
-      this.gl.ALPHA,
+      this.gl.R32F,
       maskWidth,
       maskHeight,
       0,
-      this.gl.ALPHA,
-      this.gl.UNSIGNED_BYTE,
+      this.gl.RED,
+      this.gl.FLOAT,
       input
     );
 

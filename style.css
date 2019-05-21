@@ -628,7 +628,7 @@ video {
 }
 
 #inference {
-  margin: 0 2rem;
+  margin: 4rem 2rem;
 }
 
 .tab-content {
@@ -636,7 +636,7 @@ video {
   padding: 0;
   display: flex;
   justify-content: center;
-  align-items: center;
+  /* align-items: center; */
 }
 
 .slidecontainer {
@@ -872,6 +872,18 @@ video {
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+.sample-bg-wrapper {
+  margin: 20px 0 10px 0;
+}
+
+.sample-bg-wrapper .sample-bg img {
+  width: 100%;
+  cursor: pointer;
+  margin-bottom: 30px;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2),
+              0 6px 20px 0 rgba(0, 0, 0, 0.19);
 }
 
 /* 

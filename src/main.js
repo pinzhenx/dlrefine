@@ -5,7 +5,6 @@ let streaming = false;
 let stats = new Stats();
 let track;
 let currentTab = 'image';
-let hoverPos = null;
 const counterN = 20;
 let counter = 0;
 let inferTimeAcc = 0;
@@ -14,9 +13,22 @@ let drawTimeAcc = 0;
 
 const semanticSegmentationModels = [{
   modelName: 'Deeplab 513 (TFLite)',
-  modelFormatName: 'model_513',
+  modelFormatName: 'dm1',
   modelSize: '8.4MB',
-  modelFile: './model/model513.tflite',
+  modelFile: './model/nomul.tflite',
+  labelsFile: './model/labels.txt',
+  inputSize: [513, 513, 3],
+  outputSize: [513, 513, 1],
+  preOptions: {
+    mean: [127.5, 127.5, 127.5],
+    std: [127.5, 127.5, 127.5],
+  },
+},
+{
+  modelName: 'Deeplab 513 (TFLite)',
+  modelFormatName: 'dm05',
+  modelSize: '8.4MB',
+  modelFile: './model/dm05.tflite',
   labelsFile: './model/labels.txt',
   inputSize: [513, 513, 3],
   outputSize: [513, 513, 1],
@@ -125,7 +137,6 @@ const predictAndDraw = async (source, camera = false) => {
   console.log(`Inference time: ${inferTime.toFixed(2)} ms`);
   inferenceTime.innerHTML = `inference time: <span class='ir'>${inferTime.toFixed(2)} ms</span>`;
   renderer.drawOutputs(result.segMap)
-  renderer.highlightHoverLabel(hoverPos);
   showResults();
   changeButtonUI(us === 'camera');
 };

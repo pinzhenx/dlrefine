@@ -27,36 +27,12 @@ class Renderer {
     this._effect = 'fill';
     this._zoom = 1;
     this._bgColor = [57, 135, 189];
-    this._colorMapAlpha = 0.7;
-    this._blurRadius = 30;
+    this._colorMapAlpha = 1.0;
+    this._blurRadius = 15;
     this._backgroundImageSource = null;
     let kernel1D = this._generateGaussianKernel1D(this._blurRadius * 2 + 1);
     this._halfKernel = kernel1D.slice(this._blurRadius); // take the second half
     this._guidedFilterRadius = 0;
-
-    this._colorPalette = new Uint8Array([
-      45, 52, 54,
-      85, 239, 196,
-      129, 236, 236,
-      116, 185, 255,
-      162, 155, 254,
-      223, 230, 233,
-      0, 184, 148,
-      0, 206, 201,
-      9, 132, 227,
-      39, 60, 117,
-      108, 92, 231,
-      178, 190, 195,
-      255, 234, 167,
-      250, 177, 160,
-      255, 118, 117,
-      253, 121, 168,
-      99, 110, 114,
-      253, 203, 110,
-      225, 112, 85,
-      214, 48, 49,
-      232, 67, 147,
-    ]);
   }
 
   get zoom() {
@@ -243,7 +219,6 @@ class Renderer {
 
       uniform sampler2D u_image;
       uniform sampler2D u_predictions;
-      uniform sampler2D u_palette;
       uniform int u_length;
       uniform float u_alpha;
 
@@ -251,18 +226,17 @@ class Renderer {
       in vec2 v_texcoord;
 
       void main() {
-        float label_index = texture(u_predictions, v_maskcord).a * 255.0;
-        vec4 label_color = texture(u_palette, vec2((label_index + 0.5) / float(u_length), 0.5));
+        float fg_alpha = texture(u_predictions, v_maskcord).x;
+        fg_alpha = 1.0 / (1.0 + exp(-fg_alpha));
+        vec4 mask_color = vec4(0.0, 0.0, 0.0, 1.0 - fg_alpha);
         vec4 im_color = texture(u_image, v_texcoord);
-        out_color = mix(im_color, label_color, u_alpha);
+        out_color = mix(im_color, mask_color, u_alpha);
       }`;
 
     this.shaders.colorize = new Shader(this.gl, vs, fs);
     this.shaders.colorize.use();
     this.shaders.colorize.set1i('u_image', 0); // texture units 0
     this.shaders.colorize.set1i('u_predictions', 1); // texture units 1
-    this.shaders.colorize.set1i('u_palette', 2); // texture units 2
-    this.shaders.colorize.set1i('u_length', this._colorPalette.length / 3);
 
     if (typeof this.utils.getTexture('image') === 'undefined') {
       this.utils.createAndBindTexture({
@@ -275,23 +249,6 @@ class Renderer {
       name: 'predictions',
       filter: this.gl.NEAREST,
     });
-
-    this.utils.createAndBindTexture({
-      name: 'palette',
-      filter: this.gl.NEAREST,
-    });
-
-    this.gl.texImage2D(
-      this.gl.TEXTURE_2D,
-      0,
-      this.gl.RGB,
-      this._colorPalette.length / 3,
-      1,
-      0,
-      this.gl.RGB,
-      this.gl.UNSIGNED_BYTE,
-      this._colorPalette
-    );
   }
 
   _setupExtractShader() {
@@ -648,18 +605,18 @@ class Renderer {
     // Display color labels
     if (this._effect === 'label') {
       this._segMap = newSegMap;
-      this._predictions = this._argmaxClippedSegMap(newSegMap);
+      this._predictions = this._argmaxClippedSegMapPerson(newSegMap);
       this.utils.bindTexture('predictions');
       this.gl.pixelStorei(this.gl.UNPACK_ALIGNMENT, 1);
       this.gl.texImage2D(
         this.gl.TEXTURE_2D,
         0,
-        this.gl.RGBA32F,
+        this.gl.R32F,
         this._clippedSize[0],
         this._clippedSize[1],
         0,
+        this.gl.RED,
         this.gl.FLOAT,
-        this.gl.UNSIGNED_BYTE,
         this._predictions
       );
       this._drawColorLabel();
@@ -706,63 +663,8 @@ class Renderer {
     currShader.use();
     currShader.set1f('u_alpha', this._colorMapAlpha);
     this.utils.bindFramebuffer(null);
-    this.utils.bindInputTextures(['image', 'predictions', 'palette']);
+    this.utils.bindInputTextures(['image', 'predictions']);
     this.utils.render();
-
-    // generate label map. { labelName: [ labelName, rgbTuple ] }
-    let uniqueLabels = new Set(this._predictions);
-    let labelMap = {};
-    for (let labelId of uniqueLabels) {
-      let labelName = this._segMap.labels[labelId];
-      let rgbTuple = this._colorPalette.slice(labelId * 3, (labelId + 1) * 3);
-      labelMap[labelId] = [labelName, rgbTuple];
-    }
-    this._showLegends(labelMap);
-    return labelMap;
-  }
-
-  _showLegends(labelMap) {
-    let shownLabelId = new Set();
-
-    $('.seg-label').each((i, e) => {
-      let id = $(e).attr('data-label-id');
-      if (!labelMap.hasOwnProperty(id)) {
-        $(e).remove();
-      } else {
-        shownLabelId.add(id);
-      }
-    });
-
-    for (let id in labelMap) {
-      if (!shownLabelId.has(id)) {
-        let labelDiv = $(`<div class="col-12 seg-label" data-label-id="${id}"/>`)
-          .append($(`<span style="color:rgb(${labelMap[id][1]})">⬤</span>`))
-          .append(`${labelMap[id][0]}`);
-        $('.labels-wrapper').append(labelDiv);
-      }
-    }
-  }
-
-  highlightHoverLabel(hoverPos) {
-    if (!this._predictions) {
-      return;
-    }
-
-    if (!hoverPos) {
-      // clear highlight when mouse leaves canvas
-      $('.seg-label').removeClass('highlight');
-      return;
-    }
-
-    let outputW = this._clippedSize[0];
-    let actualZoom = canvasvideo.clientWidth / this._clippedSize[0];
-
-    let x = Math.floor(hoverPos.x / actualZoom);
-    let y = Math.floor(hoverPos.y / actualZoom);
-    let labelId = this._predictions[x + y * outputW];
-
-    $('.seg-label').removeClass('highlight');
-    $('.labels-wrapper').find(`[data-label-id="${labelId}"]`).addClass('highlight');
   }
 
   _drawPerson() {
