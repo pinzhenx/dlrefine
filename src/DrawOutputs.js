@@ -19,7 +19,7 @@ class Renderer {
 
     this._segMap = null;
     this._predictions = null;
-    this._fixedSize = 513;
+    this._fixedSize = 512;
     this._clippedSize = [this._fixedSize, this._fixedSize];
     this._imageSource = null;
 
@@ -247,7 +247,7 @@ class Renderer {
 
     this.utils.createAndBindTexture({
       name: 'predictions',
-      filter: this.gl.NEAREST,
+      filter: this.gl.LINEAR,
     });
   }
 
@@ -317,7 +317,7 @@ class Renderer {
 
     this.utils.createAndBindTexture({
       name: 'predictions',
-      filter: this.gl.NEAREST,
+      filter: this.gl.LINEAR,
     });
 
     this.utils.createTexInFrameBuffer('extract',

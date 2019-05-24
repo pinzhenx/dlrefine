@@ -36,6 +36,42 @@ const semanticSegmentationModels = [{
     mean: [127.5, 127.5, 127.5],
     std: [127.5, 127.5, 127.5],
   },
+}, {
+  modelName: 'Deeplab 513 (TFLite)',
+  modelFormatName: 'noslice513',
+  modelSize: '8.4MB',
+  modelFile: './model/noslice.tflite',
+  labelsFile: './model/labels.txt',
+  inputSize: [513, 513, 3],
+  outputSize: [513, 513, 1],
+  preOptions: {
+    mean: [127.5, 127.5, 127.5],
+    std: [127.5, 127.5, 127.5],
+  },
+},  {
+  modelName: 'Deeplab 513 (TFLite)',
+  modelFormatName: 'noslice512',
+  modelSize: '8.4MB',
+  modelFile: './model/noslice512.tflite',
+  labelsFile: './model/labels.txt',
+  inputSize: [512, 512, 3],
+  outputSize: [512, 512, 1],
+  preOptions: {
+    mean: [127.5, 127.5, 127.5],
+    std: [127.5, 127.5, 127.5],
+  },
+}, {
+  modelName: 'Deeplab 513 (TFLite)',
+  modelFormatName: 'noslice449',
+  modelSize: '8.4MB',
+  modelFile: './model/noslice449.tflite',
+  labelsFile: './model/labels.txt',
+  inputSize: [449, 449, 3],
+  outputSize: [449, 449, 1],
+  preOptions: {
+    mean: [127.5, 127.5, 127.5],
+    std: [127.5, 127.5, 127.5],
+  },
 }];
 
 const showAlert = (error) => {
@@ -96,9 +132,9 @@ const getOffloadOps = async (backend, preder) => {
 const startPredict = async () => {
   if (streaming) {
     try {
-      stats.begin();
+      // stats.begin();
       await predictAndDraw(video, true);
-      stats.end();
+      // stats.end();
       setTimeout(startPredict, 0);
     } catch (e) {
       errorHandler(e);
